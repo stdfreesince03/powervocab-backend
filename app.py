@@ -19,7 +19,7 @@ app = Flask(__name__)
 # Configure CORS with specific origins
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["https://powervocab.netlify.app", "http://localhost:5173"],
+        "origins": ["https://powervocab.netlify.app", "http://localhost:5173","*"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True
