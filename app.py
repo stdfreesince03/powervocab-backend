@@ -299,32 +299,17 @@ def update_card(current_user, card_id):
         if not data.get('title') or not data.get('targetDays') or not data.get('wordPairs'):
             return jsonify({'error': 'Missing required fields'}), 400
             
-        # Create a map of existing word pairs with their learned status
-        existing_pairs = {
-            f"{wp.english.lower()}:{wp.indonesian.lower()}": wp.is_learned 
-            for wp in card.word_pairs
-        }
-        
-        # Initialize learned words counter
+        new_pairs = []
         learned_words_count = 0
         
-        # Prepare new word pairs while preserving learned status
-        new_pairs = []
         for pair in data['wordPairs']:
             if not pair.get('english') or not pair.get('indonesian'):
-                db.session.rollback()
                 return jsonify({'error': 'Invalid word pair data'}), 400
             
-            # Create a key for the current pair
-            pair_key = f"{pair['english'].lower()}:{pair['indonesian'].lower()}"
-            
-            # Check if this pair existed before and was learned
-            is_learned = existing_pairs.get(pair_key, False)
-            
-            # If the pair was learned, increment counter
+            is_learned = pair.get('isLearned', False) 
             if is_learned:
                 learned_words_count += 1
-            
+
             new_pairs.append(WordPair(
                 card_id=card_id,
                 english=pair['english'],
@@ -332,27 +317,16 @@ def update_card(current_user, card_id):
                 is_learned=is_learned
             ))
         
-        # Update basic card info
+
         card.title = data['title']
         card.target_days = int(data['targetDays'])
         
-        # Remove all existing word pairs
-        db.session.execute(db.delete(WordPair).filter_by(card_id=card_id))
-        
-        # Add new word pairs
-        for word_pair in new_pairs:
-            db.session.add(word_pair)
-        
-        # Calculate new progress percentage
+
         total_words = len(new_pairs)
-        if total_words > 0:
-            new_progress = min(round((learned_words_count / total_words) * 100), 100)
-        else:
-            new_progress = 0
-            
-        # Update card progress
+        new_progress = min(round((learned_words_count / total_words) * 100), 100) if total_words > 0 else 0
         card.progress = new_progress
         
+       
         db.session.commit()
         
         return jsonify({
